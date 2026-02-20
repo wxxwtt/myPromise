@@ -159,7 +159,44 @@ class MyPromise {
       this._pushHandle(onRejected, REJECTED, resolve, reject);
       this._runHandles();
     });
+  }
 
+  catch(onRejected) {
+    return this.then(null, onRejected); 
+  }
+
+  finally(onFinally) {
+    return this.then(
+      value => {
+        onFinally();
+        return value;
+      },
+      reason => {
+        onFinally();
+        throw reason;
+      }
+    );
+  }
+
+  // 静态 resolve 方法
+  static resolve(value) {
+    if (value instanceof MyPromise) { // 如果 value 已经是一个 MyPromise 实例，直接返回它
+      return value;
+    }
+    // 否则，创建一个新的 MyPromise 实例，如果 value 是一个 thenable 对象（即具有 then 方法的对象），则会在 MyPromise 内部处理它
+  
+    return new MyPromise((resolve, reject) => {
+      if (isPromise(value)) {
+        value.then(resolve, reject);
+      } else {
+        resolve(value);
+      }
+    });
+  }
+
+  // 静态 reject 方法
+  static reject(reason) {
+    return new MyPromise((undefined, reject) => reject(reason));
   }
 }
 const p1 = new MyPromise((resolve, reject) => {
