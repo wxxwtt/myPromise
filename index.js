@@ -123,7 +123,7 @@ class MyPromise {
    * 执行单个任务
    */
   _runOneHandle (handle) {
-    
+
     microtask(() => {
       const { executor, state, resolve, reject } = handle;
       if (this.status !== state) {
@@ -139,13 +139,13 @@ class MyPromise {
         return;
       }
       try {
-        
+
         const x = executor(this.value);
         // 如果executor执行的结果是一个promise，那么需要等待这个promise的状态改变后再执行下一个promise的回调函数
         if (isPromise(x)) {
           x.then(resolve, reject);
           return;
-        } 
+        }
         resolve(x);
       } catch (error) {
         reject(error);
@@ -153,7 +153,7 @@ class MyPromise {
     });
   }
 
-  then(onFulfilled, onRejected) {
+  then (onFulfilled, onRejected) {
     return new MyPromise((resolve, reject) => {
       this._pushHandle(onFulfilled, FULFILLED, resolve, reject);
       this._pushHandle(onRejected, REJECTED, resolve, reject);
@@ -161,11 +161,11 @@ class MyPromise {
     });
   }
 
-  catch(onRejected) {
-    return this.then(null, onRejected); 
+  catch (onRejected) {
+    return this.then(null, onRejected);
   }
 
-  finally(onFinally) {
+  finally (onFinally) {
     return this.then(
       value => {
         onFinally();
@@ -179,12 +179,12 @@ class MyPromise {
   }
 
   // 静态 resolve 方法
-  static resolve(value) {
+  static resolve (value) {
     if (value instanceof MyPromise) { // 如果 value 已经是一个 MyPromise 实例，直接返回它
       return value;
     }
     // 否则，创建一个新的 MyPromise 实例，如果 value 是一个 thenable 对象（即具有 then 方法的对象），则会在 MyPromise 内部处理它
-  
+
     return new MyPromise((resolve, reject) => {
       if (isPromise(value)) {
         value.then(resolve, reject);
@@ -195,8 +195,47 @@ class MyPromise {
   }
 
   // 静态 reject 方法
-  static reject(reason) {
+  static reject (reason) {
     return new MyPromise((undefined, reject) => reject(reason));
+  }
+
+  /**
+   * 静态 all 方法
+   * @param {Iterable} iterable - 一个可迭代对象，包含多个 Promise 实例或普通值
+   * @returns {Promise} - 返回一个新的 Promise 实例，当 iterable 中的所有 Promise 实例都成功时，返回一个包含所有结果的数组；如果有任何一个 Promise 实例失败，则返回失败的原因
+   */
+  static all (iterable) {
+    return new MyPromise((resolve, reject) => {
+
+      try {
+        const results = [];
+        let completedCount = 0;
+        const totalCount = Array.from(iterable).length;
+
+        if (totalCount === 0) {
+          return resolve(results);
+        }
+
+        Array.from(iterable).forEach((item, index) => {
+          MyPromise.resolve(item).then(
+            value => {
+              results[index] = value;
+              completedCount++;
+              if (completedCount === totalCount) {
+                resolve(results);
+              }
+            },
+            reason => {
+              reject(reason);
+            }
+          );
+        });
+      } catch (error) {
+        reject(error);
+        console.log(error);
+      }
+
+    });
   }
 }
 const p1 = new MyPromise((resolve, reject) => {
@@ -219,3 +258,4 @@ p1.then(function A (data) {
 // setTimeout(() => {
 //   console.log('setTimeout');
 // }, 0);
+
